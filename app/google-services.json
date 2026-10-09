@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "774847112132",
+    "project_id": "muralfilmes-f0a6d",
+    "storage_bucket": "muralfilmes-f0a6d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:774847112132:android:030b04c9ed609f0f0d7a91",
+        "android_client_info": {
+          "package_name": "com.aula.muralfilmes"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBba4bi8xN8nfW-BIGMFp4YuepeP5ZnK2M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
