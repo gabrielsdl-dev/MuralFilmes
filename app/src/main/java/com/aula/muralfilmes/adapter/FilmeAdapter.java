@@ -17,9 +17,16 @@ public class FilmeAdapter extends RecyclerView.Adapter<FilmeAdapter.FilmeViewHol
 
 
     private List<Filme> listaFilmes;
+    private OnFilmeClickListener listener;
 
-    public FilmeAdapter(List<Filme> listaFilmes) {
+    public interface OnFilmeClickListener {
+        void onVotar(Filme filme);
+        void onExcluir(Filme filme);
+    }
+
+    public FilmeAdapter(List<Filme> listaFilmes, OnFilmeClickListener listener) {
         this.listaFilmes = listaFilmes;
+        this.listener = listener;
     }
 
     @NonNull
@@ -43,6 +50,18 @@ public class FilmeAdapter extends RecyclerView.Adapter<FilmeAdapter.FilmeViewHol
         holder.txtGenero.setText(filme.getGenero());
         holder.txtIndicadoPor.setText("Indicado por: " + filme.getIndicadoPor());
         holder.txtVotos.setText(String.valueOf(filme.getVotos()));
+
+        holder.btnVotar.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onVotar(filme);
+            }
+        });
+
+        holder.btnExcluir.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onExcluir(filme);
+            }
+        });
     }
 
     @Override

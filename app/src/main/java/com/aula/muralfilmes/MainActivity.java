@@ -19,9 +19,36 @@ import androidx.core.view.WindowInsetsCompat;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 
+import android.widget.TextView;
+
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.aula.muralfilmes.adapter.FilmeAdapter;
+import com.aula.muralfilmes.model.Filme;
+
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.CollectionReference;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.FieldValue;
+
 public class MainActivity extends AppCompatActivity {
 
     private String meuNome;
+
+    private FirebaseFirestore db;
+    private CollectionReference filmesRef;
+
+    private RecyclerView listaFilmes;
+    private TextView txtVazio;
+
+    private FilmeAdapter adapter;
+    private List<Filme> filmes = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,11 +72,132 @@ public class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(v -> mostrarDialogoNovoFilme());
 
 
-        // Adicionar SUA IMPLEMENTAÇÃO AQUI
+        // Inicializar Firebase
+        db = FirebaseFirestore.getInstance();
+        filmesRef = db.collection("filmes");
+
+        // Configurar RecyclerView
+        listaFilmes = findViewById(R.id.listaFilmes);
+        txtVazio = findViewById(R.id.txtVazio);
+
+        listaFilmes.setLayoutManager(new LinearLayoutManager(this));
+
+        adapter = new FilmeAdapter(filmes, new FilmeAdapter.OnFilmeClickListener() {
+            @Override
+            public void onVotar(Filme filme) {
+                votarFilme(filme);
+            }
+
+            @Override
+            public void onExcluir(Filme filme) {
+                excluirFilme(filme);
+            }
+        });
+
+        listaFilmes.setAdapter(adapter);
+
+        observarFilmes();
 
 
 
 
+    }
+
+    private void votarFilme(Filme filme) {
+
+        if (filme.getId() == null) {
+            Toast.makeText(this,
+                    "Não foi possível identificar o filme",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        filmesRef.document(filme.getId())
+                .update("votos", FieldValue.increment(1))
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this,
+                            "Erro ao votar: " + e.getMessage(),
+                            Toast.LENGTH_LONG).show();
+                });
+    }
+
+
+    private void excluirFilme(Filme filme) {
+
+        if (filme.getId() == null) {
+            Toast.makeText(this,
+                    "Filme não identificado",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (meuNome == null ||
+                !meuNome.equals(filme.getIndicadoPor())) {
+
+            Toast.makeText(this,
+                    "Você só pode excluir filmes indicados por você!",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Excluir filme")
+                .setMessage("Deseja realmente excluir " + filme.getTitulo() + "?")
+                .setNegativeButton("Cancelar", null)
+                .setPositiveButton("Excluir", (dialog, which) -> {
+
+                    filmesRef.document(filme.getId())
+                            .delete()
+                            .addOnSuccessListener(unused -> {
+                                Toast.makeText(this,
+                                        "Filme excluído com sucesso!",
+                                        Toast.LENGTH_SHORT).show();
+                            })
+                            .addOnFailureListener(e -> {
+                                Toast.makeText(this,
+                                        "Erro ao excluir: " + e.getMessage(),
+                                        Toast.LENGTH_LONG).show();
+                            });
+                })
+                .show();
+    }
+
+
+    private void observarFilmes() {
+        filmesRef.orderBy("votos", Query.Direction.DESCENDING)
+                .addSnapshotListener(this, (snapshot, erro) -> {
+
+                    if (erro != null) {
+                        Toast.makeText(this,
+                                "Erro ao carregar filmes: " + erro.getMessage(),
+                                Toast.LENGTH_LONG).show();
+                        return;
+                    }
+
+                    if (snapshot == null) {
+                        return;
+                    }
+
+                    filmes.clear();
+
+                    for (com.google.firebase.firestore.DocumentSnapshot documento
+                            : snapshot.getDocuments()) {
+
+                        Filme filme = documento.toObject(Filme.class);
+
+                        if (filme != null) {
+                            filmes.add(filme);
+                        }
+                    }
+
+                    adapter.notifyDataSetChanged();
+
+                    if (filmes.isEmpty()) {
+                        txtVazio.setVisibility(View.VISIBLE);
+                    } else {
+                        txtVazio.setVisibility(View.GONE);
+                    }
+                });
     }
 
 
@@ -98,8 +246,26 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(this, "Preencha título e gênero", Toast.LENGTH_SHORT).show();
                         return;
                     }
+                    cadastrarFilme(titulo, genero);
 
                 })
                 .show();
+    }
+
+    private void cadastrarFilme(String titulo, String genero) {
+
+        Filme novoFilme = new Filme(titulo, genero, meuNome);
+
+        filmesRef.add(novoFilme)
+                .addOnSuccessListener(documentReference -> {
+                    Toast.makeText(this,
+                            "Filme cadastrado com sucesso!",
+                            Toast.LENGTH_SHORT).show();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this,
+                            "Erro ao cadastrar: " + e.getMessage(),
+                            Toast.LENGTH_LONG).show();
+                });
     }
 }
